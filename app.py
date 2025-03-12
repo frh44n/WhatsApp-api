@@ -34,6 +34,8 @@ def verify_webhook():
 @app.route('/webhook', methods=['POST'])
 def receive_message():
     data = request.json
+    print("🔹 Incoming Webhook Data:", json.dumps(data, indent=2))  # Debugging
+
     if "entry" in data:
         for entry in data["entry"]:
             for change in entry["changes"]:
@@ -41,6 +43,8 @@ def receive_message():
                     for msg in change["value"]["messages"]:
                         sender = msg["from"]
                         message_text = msg.get("text", {}).get("body", "Media Message")
+
+                        # Store received messages
                         messages.append({"sender": sender, "message": message_text, "type": "received"})
 
     return jsonify({"status": "received"}), 200
