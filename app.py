@@ -39,14 +39,21 @@ def receive_message():
 
     if "entry" in data:
         for entry in data["entry"]:
-            for change in entry["changes"]:
-                if "messages" in change["value"]:
-                    for msg in change["value"]["messages"]:
-                        sender = msg["from"]
-                        message_text = msg.get("text", {}).get("body", "Media Message")
+            for change in entry.get("changes", []):
+                value = change.get("value", {})
+
+                # Ensure this is a message event
+                if "messages" in value:
+                    for msg in value["messages"]:
+                        sender = msg.get("from", "Unknown")
+                        msg_type = msg.get("type", "unknown")
+
+                        if msg_type == "text":
+                            message_text = msg["text"].get("body", "No text")
+                        else:
+                            message_text = f"Received {msg_type} message"
 
                         messages.append({"sender": sender, "message": message_text, "type": "received"})
-                        print(f"New Message: {sender} -> {message_text}")  # Debugging log
 
     return jsonify({"status": "received"}), 200
 
