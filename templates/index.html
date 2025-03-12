@@ -4,45 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Chat</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        #chat { width: 60%; margin: auto; border: 1px solid #ddd; padding: 10px; height: 400px; overflow-y: scroll; }
-        .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
-        .sender { background: #dcf8c6; text-align: left; }
-        .receiver { background: #e6e6e6; text-align: right; }
-    </style>
-    <script>
-        async function loadMessages() {
-            let response = await fetch("/messages");
-            let data = await response.json();
-            let chatBox = document.getElementById("chat");
-            chatBox.innerHTML = "";
-            data.forEach(msg => {
-                let cssClass = msg.sender === "me" ? "sender" : "receiver";
-                chatBox.innerHTML += `<div class="message ${cssClass}"><b>${msg.sender}:</b> ${msg.message}</div>`;
-            });
-        }
-
-        async function sendMessage() {
-            let recipient = document.getElementById("phone").value;
-            let text = document.getElementById("message").value;
-            await fetch("/send_message", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ recipient: recipient, text: text })
-            });
-            document.getElementById("message").value = "";
-            loadMessages();
-        }
-
-        setInterval(loadMessages, 3000); // Refresh chat every 3 seconds
-    </script>
 </head>
 <body>
-    <h1>WhatsApp Chat</h1>
-    <div id="chat"></div>
-    <input type="text" id="phone" placeholder="Enter phone number"><br>
+    <h2>WhatsApp Chat</h2>
+
+    <!-- Message Input -->
+    <input type="text" id="recipient" placeholder="Enter Mobile Number">
     <input type="text" id="message" placeholder="Type a message">
     <button onclick="sendMessage()">Send</button>
+
+    <!-- Chat Display -->
+    <div id="chat-box" style="margin-top: 20px; border: 1px solid #ddd; padding: 10px; height: 300px; overflow-y: scroll;">
+        <p>Loading messages...</p>
+    </div>
+
+    <script>
+        // Fetch messages every 5 seconds
+        async function fetchMessages() {
+            const response = await fetch("/messages");
+            const messages = await response.json();
+
+            const chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML = ""; 
+
+            messages.forEach(msg => {
+                chatBox.innerHTML += `<p><strong>${msg.sender}:</strong> ${msg.message}</p>`;
+            });
+        }
+        setInterval(fetchMessages, 5000);
+
+        // Function to send message
+        async function sendMessage() {
+            const recipient = document.getElementById("recipient").value;
+            const message = document.getElementById("message").value;
+
+            const response = await fetch("/send_message", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ recipient, text: message })
+            });
+
+            document.getElementById("message").value = "";
+            fetchMessages(); // Refresh chat
+        }
+    </script>
 </body>
 </html>
