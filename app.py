@@ -16,10 +16,10 @@ if os.path.exists(CONFIG_FILE):
 else:
     raise FileNotFoundError(f"{CONFIG_FILE} not found. Please create it with your credentials.")
 
-# Temporary storage for received messages
+# Temporary storage for messages (both received & sent)
 messages = []
 
-# Webhook verification route
+# Webhook verification (for Meta)
 @app.route('/webhook', methods=['GET'])
 def verify_webhook():
     mode = request.args.get("hub.mode")
@@ -30,7 +30,7 @@ def verify_webhook():
         return challenge
     return "Verification failed", 403
 
-# Route to receive WhatsApp messages
+# Webhook to receive WhatsApp messages
 @app.route('/webhook', methods=['POST'])
 def receive_message():
     data = request.json
@@ -45,12 +45,12 @@ def receive_message():
 
     return jsonify({"status": "received"}), 200
 
-# Route to fetch messages for frontend
+# Route to fetch all messages for frontend
 @app.route('/messages', methods=['GET'])
 def get_messages():
     return jsonify(messages)
 
-# Route to send a message
+# Route to send WhatsApp messages
 @app.route('/send_message', methods=['POST'])
 def send_message():
     data = request.json
@@ -70,6 +70,10 @@ def send_message():
     }
 
     response = requests.post(url, headers=headers, json=payload)
+
+    # Store sent message in memory
+    messages.append({"sender": "Me", "message": text, "recipient": recipient})
+
     return jsonify(response.json())
 
 # Home route to serve frontend
