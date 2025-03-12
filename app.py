@@ -1,27 +1,34 @@
 from flask import Flask, request, jsonify, render_template
 import requests
+import json
+import os
 
 app = Flask(__name__)
+
+# Load credentials from config.json
+CONFIG_FILE = "config.json"
+if os.path.exists(CONFIG_FILE):
+    with open(CONFIG_FILE, "r") as file:
+        config = json.load(file)
+        ACCESS_TOKEN = config.get("ACCESS_TOKEN", "")
+        PHONE_NUMBER_ID = config.get("PHONE_NUMBER_ID", "")
+        VERIFY_TOKEN = config.get("VERIFY_TOKEN", "")
+else:
+    raise FileNotFoundError(f"{CONFIG_FILE} not found. Please create it with your credentials.")
 
 # Temporary storage for received messages
 messages = []
 
-# Your WhatsApp API credentials
-ACCESS_TOKEN = "EAA4oGPOX6zsBO9OleVbTHZBA4DyHL6PMXINFElKoIzZBPuhZBTBVZCS13OPw6V2kAeoyrMRvG3KlDV3GPXxnonIrg5Q1gD0tAhZAtfMUZBV3275zqgEh2dTF1SX5vItdK97Sda030RTqFV7LMkvJwA9WC4XZB7gOeqrUDFXaFt7MPqdsvtlagHXTj7DZBfcBaVyzIgZDZD"
-PHONE_NUMBER_ID = "602490136278649"
-
 # Webhook verification route
 @app.route('/webhook', methods=['GET'])
 def verify_webhook():
-    VERIFY_TOKEN = "zapexy"  # Set this in Meta Developer Portal
     mode = request.args.get("hub.mode")
     token = request.args.get("hub.verify_token")
     challenge = request.args.get("hub.challenge")
-    
+
     if mode == "subscribe" and token == VERIFY_TOKEN:
         return challenge
-    else:
-        return "Verification failed", 403
+    return "Verification failed", 403
 
 # Route to receive WhatsApp messages
 @app.route('/webhook', methods=['POST'])
