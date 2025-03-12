@@ -1,64 +1,56 @@
 from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 import requests
 import json
-import os
 
 app = Flask(__name__)
+CORS(app)
 
-# Load credentials from config.json
-CONFIG_FILE = "config.json"
-if os.path.exists(CONFIG_FILE):
-    with open(CONFIG_FILE, "r") as file:
-        config = json.load(file)
-        ACCESS_TOKEN = config.get("ACCESS_TOKEN", "")
-        PHONE_NUMBER_ID = config.get("PHONE_NUMBER_ID", "")
-        VERIFY_TOKEN = config.get("VERIFY_TOKEN", "")
-else:
-    raise FileNotFoundError(f"{CONFIG_FILE} not found. Please create it with your credentials.")
+# Replace with your actual credentials
+ACCESS_TOKEN = "YOUR_ACCESS_TOKEN"
+PHONE_NUMBER_ID = "YOUR_PHONE_NUMBER_ID"
 
-# Temporary storage for messages (both received & sent)
+# In-memory storage for messages
 messages = []
 
-# Webhook verification (for Meta)
+@app.route('/')
+def index():
+    return render_template('index.html', messages=messages)
+
+# Webhook Verification
 @app.route('/webhook', methods=['GET'])
 def verify_webhook():
+    VERIFY_TOKEN = "YOUR_VERIFY_TOKEN"
     mode = request.args.get("hub.mode")
     token = request.args.get("hub.verify_token")
     challenge = request.args.get("hub.challenge")
 
     if mode == "subscribe" and token == VERIFY_TOKEN:
-        return challenge
-    return "Verification failed", 403
+        print("WEBHOOK VERIFIED SUCCESSFULLY!")
+        return challenge, 200
+    else:
+        return "Verification failed", 403
 
-# Webhook to receive WhatsApp messages
+# Receive messages from WhatsApp
 @app.route('/webhook', methods=['POST'])
 def receive_message():
     data = request.json
-    print("🔹 Incoming Webhook Data:", json.dumps(data, indent=2))  # Log entire request
+    print("Webhook received data:", json.dumps(data, indent=2))  # Debugging log
 
     if "entry" in data:
         for entry in data["entry"]:
             for change in entry["changes"]:
                 if "messages" in change["value"]:
                     for msg in change["value"]["messages"]:
-                        sender = msg.get("from", "Unknown")
+                        sender = msg["from"]
                         message_text = msg.get("text", {}).get("body", "Media Message")
-                        print(f"📩 Message from {sender}: {message_text}")  # Debug each message
+
                         messages.append({"sender": sender, "message": message_text, "type": "received"})
+                        print(f"New Message: {sender} -> {message_text}")  # Debugging log
 
     return jsonify({"status": "received"}), 200
 
-                        # Store received messages
-                        messages.append({"sender": sender, "message": message_text, "type": "received"})
-
-    return jsonify({"status": "received"}), 200
-
-# Route to fetch all messages for frontend
-@app.route('/messages', methods=['GET'])
-def get_messages():
-    return jsonify(messages)
-
-# Route to send WhatsApp messages
+# Send messages via WhatsApp API
 @app.route('/send_message', methods=['POST'])
 def send_message():
     data = request.json
@@ -78,17 +70,19 @@ def send_message():
     }
 
     response = requests.post(url, headers=headers, json=payload)
+    response_data = response.json()
+    print("Send Message Response:", json.dumps(response_data, indent=2))  # Debugging log
 
-    # Store sent message in memory
     if response.status_code == 200:
-        messages.append({"sender": "Me", "message": text, "recipient": recipient, "type": "sent"})
+        messages.append({"sender": "You", "message": text, "type": "sent"})
+        return jsonify(response_data)
+    else:
+        return jsonify({"error": response_data}), 400
 
-    return jsonify(response.json())
-
-# Home route to serve frontend
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Fetch all messages (For frontend display)
+@app.route('/messages', methods=['GET'])
+def get_messages():
+    return jsonify(messages)
 
 if __name__ == '__main__':
     app.run(debug=True)
