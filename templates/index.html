@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #chat-box { width: 80%; max-width: 500px; margin: auto; border: 1px solid #ddd; padding: 10px; height: 400px; overflow-y: scroll; text-align: left; }
+        .message { padding: 5px; margin: 5px 0; border-radius: 5px; }
+        .sent { background-color: #d1f7c4; text-align: right; }
+        .received { background-color: #f1f1f1; text-align: left; }
+    </style>
 </head>
 <body>
     <h2>WhatsApp Chat</h2>
@@ -14,12 +21,10 @@
     <button onclick="sendMessage()">Send</button>
 
     <!-- Chat Display -->
-    <div id="chat-box" style="margin-top: 20px; border: 1px solid #ddd; padding: 10px; height: 300px; overflow-y: scroll;">
-        <p>Loading messages...</p>
-    </div>
+    <div id="chat-box"></div>
 
     <script>
-        // Fetch messages every 5 seconds
+        // Fetch messages every 3 seconds
         async function fetchMessages() {
             const response = await fetch("/messages");
             const messages = await response.json();
@@ -28,24 +33,32 @@
             chatBox.innerHTML = ""; 
 
             messages.forEach(msg => {
-                chatBox.innerHTML += `<p><strong>${msg.sender}:</strong> ${msg.message}</p>`;
+                const msgClass = msg.type === "sent" ? "sent" : "received";
+                chatBox.innerHTML += `<div class="message ${msgClass}"><strong>${msg.sender}:</strong> ${msg.message}</div>`;
             });
+
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to the latest message
         }
-        setInterval(fetchMessages, 5000);
+        setInterval(fetchMessages, 3000);
 
         // Function to send message
         async function sendMessage() {
             const recipient = document.getElementById("recipient").value;
             const message = document.getElementById("message").value;
 
-            const response = await fetch("/send_message", {
+            if (!recipient || !message) {
+                alert("Enter both recipient number and message!");
+                return;
+            }
+
+            await fetch("/send_message", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ recipient, text: message })
             });
 
             document.getElementById("message").value = "";
-            fetchMessages(); // Refresh chat
+            fetchMessages(); // Refresh chat immediately
         }
     </script>
 </body>
