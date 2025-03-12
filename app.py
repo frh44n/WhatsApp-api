@@ -41,7 +41,7 @@ def receive_message():
                     for msg in change["value"]["messages"]:
                         sender = msg["from"]
                         message_text = msg.get("text", {}).get("body", "Media Message")
-                        messages.append({"sender": sender, "message": message_text})
+                        messages.append({"sender": sender, "message": message_text, "type": "received"})
 
     return jsonify({"status": "received"}), 200
 
@@ -72,7 +72,8 @@ def send_message():
     response = requests.post(url, headers=headers, json=payload)
 
     # Store sent message in memory
-    messages.append({"sender": "Me", "message": text, "recipient": recipient})
+    if response.status_code == 200:
+        messages.append({"sender": "Me", "message": text, "recipient": recipient, "type": "sent"})
 
     return jsonify(response.json())
 
